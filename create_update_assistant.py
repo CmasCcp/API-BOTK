@@ -9,9 +9,10 @@ OPENAI_API_KEY = os.environ['OPEN_AI_API_KEY']
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 def create_vector_store_with_files(folder="documentos_macaya"):
-    #current_dir = os.path.dirname(os.path.abspath(__file__))
-    #full_path = os.path.join(current_dir, folder)
-    full_path="/var/www/api-botk/documentos_macaya" 
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    full_path = os.path.join(current_dir, folder)
+    # TODO: SERVER
+    # full_path="/var/www/api-botk/documentos_macaya" 
 
     vector_store_response = client.beta.vector_stores.create(name="Bot_Macaya_Files")
     vector_store_id = vector_store_response.id

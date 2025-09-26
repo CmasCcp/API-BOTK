@@ -65,6 +65,7 @@ def chat():
         )
 
         if run.status == "requires_action" and run.required_action:
+            print("Run requires action, processing tool calls...")
             tool_calls = run.required_action.submit_tool_outputs.tool_calls
             tool_outputs = []
 
@@ -72,7 +73,7 @@ def chat():
                 name = call.function.name
                 args = json.loads(call.function.arguments)
                 args["thread_id"] = thread_id
-
+                print(f"Executing tool: {name} with args: {args}")
                 try:
                     if name in HANDLERS:
                         result = HANDLERS[name](args)
