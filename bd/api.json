@@ -1,0 +1,214 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "API Docs - Sensores",
+    "version": "1.0.0",
+    "description": "Especificación OpenAPI 3.1.0 con todos los endpoints de la API."
+  },
+  "servers": [
+    {
+      "url": "https://api-sensores.cmasccp.cl",
+      "description": "Servidor principal de la API de sensores"
+    }
+  ],
+  "paths": {
+    "/endovenosaDummy": {
+      "get": {
+        "operationId": "get_endovenosaDummy",
+        "summary": "Datos simulados de dispositivo",
+        "responses": {
+          "200": { "description": "Datos del dispositivo" }
+        }
+      }
+    },
+    "/ultimoValor": {
+      "get": {
+        "operationId": "get_ultimoValor",
+        "summary": "Obtiene el último valor de una columna",
+        "parameters": [
+          { "name": "tabla", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "columna", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Último valor obtenido" }
+        }
+      }
+    },
+    "/generarSesion": {
+      "get": {
+        "operationId": "get_generarSesion",
+        "summary": "Crea nueva sesión",
+        "parameters": [
+          { "name": "id_proyecto", "in": "query", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "201": { "description": "Sesión creada correctamente" }
+        }
+      }
+    },
+    "/columnaForanea": {
+      "get": {
+        "operationId": "get_columnaForanea",
+        "summary": "Valores de columna foránea",
+        "parameters": [
+          { "name": "columna", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Datos obtenidos" }
+        }
+      }
+    },
+    "/insertarMedicion": {
+      "get": {
+        "operationId": "get_insertarMedicion",
+        "summary": "Inserta mediciones",
+        "parameters": [
+          { "name": "idsSensores", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "idsVariables", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "valores", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "201": { "description": "Medición insertada" }
+        }
+      }
+    },
+    "/listarTablas": {
+      "get": {
+        "operationId": "get_listarTablas",
+        "summary": "Lista tablas permitidas con metadatos",
+        "responses": {
+          "200": {
+            "description": "Tablas listadas correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/TablaMetadata" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/listarDatos": {
+      "get": {
+        "operationId": "get_listarDatos",
+        "summary": "Obtiene datos de una tabla",
+        "parameters": [
+          { "name": "tabla", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Datos listados correctamente" }
+        }
+      }
+    },
+    "/listarDatosEstructurados": {
+      "get": {
+        "operationId": "get_listarDatosEstructurados",
+        "summary": "Lista datos estructurados de \"datos\"",
+        "parameters": [
+          { "name": "limite", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Datos estructurados listados" } }
+      }
+    },
+    "/schema": {
+      "get": {
+        "operationId": "get_schema",
+        "summary": "Esquema de una tabla",
+        "parameters": [
+          { "name": "tabla", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Esquema obtenido correctamente" }
+        }
+      }
+    },
+    "/modificarDatos": {
+      "put": {
+        "operationId": "put_modificarDatos",
+        "summary": "Modifica registros en una tabla específica",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModificarDatosRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Registro actualizado correctamente" }
+        }
+      }
+    },
+    "/eliminarDatos": {
+      "get": {
+        "operationId": "get_eliminarDatos",
+        "summary": "Elimina registros de una tabla",
+        "parameters": [
+          { "name": "tabla", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "filtros", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Registro eliminado correctamente" }
+        }
+      }
+    },
+    "/agregarDatos": {
+      "post": {
+        "operationId": "post_agregarDatos",
+        "summary": "Agrega un nuevo registro a una tabla",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgregarDatosRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Registro insertado correctamente" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ModificarDatosRequest": {
+        "type": "object",
+        "required": ["tableName", "primaryKeys", "formData"],
+        "properties": {
+          "tableName": { "type": "string" },
+          "primaryKeys": { "type": "object", "additionalProperties": true },
+          "formData": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "AgregarDatosRequest": {
+        "type": "object",
+        "required": ["tableName", "formData"],
+        "properties": {
+          "tableName": { "type": "string" },
+          "formData": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "TablaMetadata": {
+        "type": "object",
+        "properties": {
+          "dataName": { "type": "string" },
+          "displayName": { "type": "string" },
+          "description": { "type": "string" },
+          "fields": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["dataName", "displayName"]
+      }
+    }
+  }
+}

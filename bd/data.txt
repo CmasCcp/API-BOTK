@@ -1,0 +1,1 @@
+https://api-sensores.cmasccp.cl/listarDatosEstructurados?tabla=datos&disp.id_proyecto=1&limite=20&offset=1
