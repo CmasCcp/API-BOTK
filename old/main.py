@@ -1,0 +1,304 @@
+from openai import OpenAI
+import os
+from dotenv import load_dotenv
+import document_manipulation
+from flask import Flask, request, jsonify
+import requests
+import json
+from flask_cors import CORS
+import subprocess
+import shutil
+
+
+# Carga variables de entorno
+load_dotenv('.env')
+OPENAI_API_KEY = os.environ['OPEN_AI_API_KEY']
+
+# Creamos cliente
+client = OpenAI(api_key=OPENAI_API_KEY)
+
+app = Flask(__name__)
+CORS(app)
+ASSISTANT_ID = os.environ['ASSISTANT_ID']
+VECTOR_STORE_ID = os.environ['VECTOR_STORE_ID']
+
+
+
+# --------------------------------------------------------------------------------
+# 2) Endpoints
+# --------------------------------------------------------------------------------
+
+@app.route('/start', methods=['GET'])
+def start_conversation():
+    """
+    - Crea un thread y devuelve sus datos junto con el assistant_id y vector_store_id fijos.
+    """
+    print("[/start] Creating new thread for persistent assistant...")
+    thread = client.beta.threads.create()
+    thread_id = thread.id
+    print(f"[/start] thread_id={thread_id}")
+
+    return jsonify({
+        "thread_id": thread_id,
+        "assistant_id": ASSISTANT_ID,
+        "vector_store_id": VECTOR_STORE_ID
+    })
+
+
+
+
+@app.route('/compile', methods=['POST'])
+def compile_latex():
+    data = request.get_json()
+    thread_id = data.get("thread_id")
+
+    tex_path = f"generatedDocuments/{thread_id}.tex"
+    
+    # 📍 Carpeta de salida en el backend (para compilación temporal)
+    backend_output_dir = os.path.join(os.getenv("BACKEND_OUTPUT_DIR"), thread_id)
+    os.makedirs(backend_output_dir, exist_ok=True)
+
+    try:
+        # ✅ Compilar el PDF usando pdflatex
+        result = subprocess.run(
+            ["C:/Program Files/MiKTeX/miktex/bin/x64/pdflatex.exe",
+             "-interaction=nonstopmode",
+             "-output-directory", backend_output_dir,
+             tex_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True
+        )
+
+        print(f"[compile] ✅ PDF generado para thread_id={thread_id} en backend")
+
+        # 📍 Ruta destino en carpeta pública del frontend
+        frontend_public_path = os.path.join(os.getenv("FRONTEND_PUBLIC_PATH"),
+            thread_id
+        )
+        os.makedirs(frontend_public_path, exist_ok=True)
+
+        # ✅ Copiar PDF al frontend
+        shutil.copyfile(
+            os.path.join(backend_output_dir, f"{thread_id}.pdf"),
+            os.path.join(frontend_public_path, f"{thread_id}.pdf")
+        )
+
+        print(f"[compile] ✅ PDF copiado a frontend/public/pdf/{thread_id}/{thread_id}.pdf")
+
+        return jsonify({"status": "success"})
+
+    except subprocess.CalledProcessError as e:
+        print(f"[compile] ❌ Error pdflatex:\nSTDERR:\n{e.stderr}\nSTDOUT:\n{e.stdout}")
+        return jsonify({"status": "error", "message": e.stderr}), 500
+    except Exception as general_error:
+        print(f"[compile] ❌ Error al copiar PDF al frontend: {general_error}")
+        return jsonify({"status": "error", "message": str(general_error)}), 500
+
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    """
+    Endpoint principal para enviar mensajes de usuario a la IA.
+    Requiere:
+      - thread_id
+      - assistant_id
+      - vector_store_id
+      - message (texto del usuario)
+      - (Opcional) files
+    Subimos archivos a la API, los indexamos en 'vector_store_id',
+    y enviamos el mensaje. Hacemos poll hasta obtener respuesta.
+    """
+    thread_id = request.form.get('thread_id')
+    assistant_id = request.form.get('assistant_id')
+    vector_store_id = request.form.get('vector_store_id')
+    user_input = request.form.get('message', '')
+
+    if not thread_id or not assistant_id or not vector_store_id:
+        print("[/chat] Error: missing one of thread_id, assistant_id, vector_store_id")
+        return jsonify({"error": "Missing required IDs"}), 400
+
+    uploaded_files = request.files.getlist('files')
+    files_info = []
+
+    # Subimos cada archivo y lo asociamos al vector store
+    for file in uploaded_files:
+        uploads_path = os.environ.get('UPLOADS_PATH')
+        file_path = os.path.join(uploads_path, file.filename)
+        file.save(file_path)
+        print(f"[/chat] Saved file: {file_path}")
+
+        # 1) Subir a OpenAI
+        my_file = client.files.create(file=open(file_path, "rb"), purpose="assistants")
+        file_id = my_file.id
+        files_info.append(file_id)
+        print(f"[/chat] Created file in OpenAI: {file_id}")
+
+        # 2) Asociar al vector store
+        client.beta.vector_stores.files.create(
+            vector_store_id=vector_store_id,
+            file_id=file_id
+        )
+        print(f"[/chat] Added file {file_id} to vector store {vector_store_id}")
+
+    print(f"[/chat] Received message: '{user_input}' for thread ID: {thread_id}, assistant ID: {assistant_id}")
+
+    # Creamos el mensaje del usuario
+    client.beta.threads.messages.create(
+        thread_id=thread_id,
+        role="user",
+        content=user_input,
+        attachments=[
+            {"file_id": fid, "tools": [{"type": "file_search"}]}
+            for fid in files_info
+        ]
+    )
+
+    # Iniciamos un 'run'
+    run = client.beta.threads.runs.create_and_poll(
+        thread_id=thread_id,
+        assistant_id=assistant_id,
+    )
+
+    # Si la IA requiere function calls
+    if run.status == 'requires_action':
+        print("[/chat] Run requires_action -> function calls")
+        tool_outputs = []
+        for tool_call in run.required_action.submit_tool_outputs.tool_calls:
+            if tool_call.function.name == 'modify_document':
+                arguments = json.loads(tool_call.function.arguments)
+                section = arguments['Section']
+                content = arguments['Content']
+                print(f"[modify_document] Called with section='{section}', content='{content}'")
+
+                response = modify_latex_document(section, content, thread_id)
+                if "error" in response:
+                    print(f"[modify_document] Error in section={section}")
+                    tool_outputs.append({
+                        "tool_call_id": tool_call.id,
+                        "output": json.dumps({"error": f"Failed for section {section}"})
+                    })
+                else:
+                    tool_outputs.append({
+                        "tool_call_id": tool_call.id,
+                        "output": json.dumps(response)
+                    })
+
+        # Enviamos resultados de las tool calls
+        if tool_outputs:
+            try:
+                run = client.beta.threads.runs.submit_tool_outputs_and_poll(
+                    thread_id=thread_id,
+                    run_id=run.id,
+                    tool_outputs=tool_outputs
+                )
+                print("[/chat] Tool outputs submitted successfully.")
+            except Exception as e:
+                print(f"[/chat] Failed to submit tool outputs: {e}")
+
+    if run.status == 'completed':
+        print("[/chat] Run completed, retrieving final assistant response...")
+        messages = client.beta.threads.messages.list(thread_id=thread_id)
+        response_text = None
+        for message in messages.data:
+            if message.role == 'assistant' and 'text' in message.content[0].type:
+                response_text = message.content[0].text.value
+                break
+
+        if response_text is None:
+            response_text = "[No assistant response found]"
+        print(f"[/chat] Assistant response: {response_text}")
+        return jsonify({"response": response_text})
+
+    else:
+        print(f"[/chat] Run did NOT complete, status = {run.status}")
+        return jsonify({"error": "Run did not complete successfully"}), 500
+
+
+@app.route('/readTextFile', methods=['GET'])
+def read_text_file():
+    """
+    Lee un archivo .tex (por ejemplo, cuando la IA modifica secciones),
+    y devuelve su contenido al frontend.
+    """
+    thread_id = request.args.get('thread_id')
+    try:
+        with open(f"generatedDocuments/{thread_id}.tex", 'r', encoding='utf-8') as file:
+            content = file.read()
+        return jsonify({"response": content})
+    except FileNotFoundError:
+        print("[readTextFile] No .tex file found for this thread")
+        return jsonify({"response": ""})
+    except Exception as e:
+        print(f"[readTextFile] Error reading file: {e}")
+        return jsonify({"error": str(e), "response": ""})
+
+
+@app.route('/threadHistory', methods=['GET'])
+def get_thread_history():
+    """
+    Devuelve el historial de mensajes para un thread dado.
+    """
+    thread_id = request.args.get('thread_id')
+    url = f"https://api.openai.com/v1/threads/{thread_id}/messages"
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "OpenAI-Beta": "assistants=v2",
+    }
+
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        data = response.json()
+        if isinstance(data.get('data'), list):
+            data['data'] = data['data'][::-1]  # invertir para ver más recientes arriba
+        return jsonify(data), 200
+    else:
+        print("[threadHistory] Error fetching thread history: ", response.text)
+        return jsonify({
+            "error": "Failed to fetch thread history",
+            "details": response.text,
+        }), response.status_code
+
+
+@app.route('/listAssistants', methods=['GET'])
+def list_available_assistants():
+    """
+    Lista todos los asistentes creados en tu cuenta, para debugging.
+    """
+    try:
+        assistants = client.beta.assistants.list().data
+        for asst in assistants:
+            print(f"Assistant Name: {asst.name}, ID: {asst.id}")
+        # Devolvemos la lista de IDs
+        return jsonify([asst.id for asst in assistants])
+    except Exception as e:
+        print(f"[listAssistants] Error retrieving assistants: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+SECTION_MAP = {
+    "AUTHORS": "RESEARCHER",
+    "AUTHOR": "RESEARCHER",
+    "RESEARCHERS": "RESEARCHER",
+    "INVESTIGADORES": "RESEARCHER",
+    "TITULO": "TITLE",
+    "TÍTULO": "TITLE",
+    "PROPÓSITO": "PURPOSE"
+    
+}
+
+def modify_latex_document(section, new_content, thread_id):
+
+    std_section = section.upper().replace(" ", "_").replace("<<", "").replace(">>", "")
+    std_section = SECTION_MAP.get(std_section, std_section)
+
+    print(f"[modify_latex_document] Modifying section: {std_section}")
+    document_manipulation.update_latex_section(std_section, new_content, thread_id)
+    return {"success": True}
+
+if __name__ == '__main__':
+    print("[main] Starting Flask server...")
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))

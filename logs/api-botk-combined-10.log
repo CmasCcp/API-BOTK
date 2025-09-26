@@ -1,0 +1,51 @@
+2025-09-13T13:11:52: [2025-09-13 13:11:52 -0300] [2561360] [INFO] Starting gunicorn 23.0.0
+2025-09-13T13:11:52: [2025-09-13 13:11:52 -0300] [2561360] [INFO] Listening at: http://0.0.0.0:8096 (2561360)
+2025-09-13T13:11:52: [2025-09-13 13:11:52 -0300] [2561360] [INFO] Using worker: sync
+2025-09-13T13:11:52: [2025-09-13 13:11:52 -0300] [2561452] [INFO] Booting worker with pid: 2561452
+2025-09-13T13:11:52: [2025-09-13 13:11:52 -0300] [2561453] [INFO] Booting worker with pid: 2561453
+2025-09-13T13:11:52: [2025-09-13 13:11:52 -0300] [2561454] [INFO] Booting worker with pid: 2561454
+2025-09-13T13:11:52: [2025-09-13 13:11:52 -0300] [2561455] [INFO] Booting worker with pid: 2561455
+2025-09-13T13:22:19: [2025-09-13 13:22:19 -0300] [2562888] [INFO] Starting gunicorn 23.0.0
+2025-09-13T13:22:19: [2025-09-13 13:22:19 -0300] [2562888] [INFO] Listening at: http://0.0.0.0:8096 (2562888)
+2025-09-13T13:22:19: [2025-09-13 13:22:19 -0300] [2562888] [INFO] Using worker: sync
+2025-09-13T13:22:19: [2025-09-13 13:22:19 -0300] [2562888] [ERROR] Unhandled exception in main loop
+2025-09-13T13:22:19: Traceback (most recent call last):
+2025-09-13T13:22:19:   File "/var/www/api-botk/venv_api_botk/lib/python3.10/site-packages/gunicorn/arbiter.py", line 201, in run
+2025-09-13T13:22:19:     self.manage_workers()
+2025-09-13T13:22:19:   File "/var/www/api-botk/venv_api_botk/lib/python3.10/site-packages/gunicorn/arbiter.py", line 570, in manage_workers
+2025-09-13T13:22:19:     self.spawn_workers()
+2025-09-13T13:22:19:   File "/var/www/api-botk/venv_api_botk/lib/python3.10/site-packages/gunicorn/arbiter.py", line 641, in spawn_workers
+2025-09-13T13:22:19:     self.spawn_worker()
+2025-09-13T13:22:19:   File "/var/www/api-botk/venv_api_botk/lib/python3.10/site-packages/gunicorn/arbiter.py", line 588, in spawn_worker
+2025-09-13T13:22:19:     worker = self.worker_class(self.worker_age, self.pid, self.LISTENERS,
+2025-09-13T13:22:19:   File "/var/www/api-botk/venv_api_botk/lib/python3.10/site-packages/gunicorn/workers/base.py", line 65, in __init__
+2025-09-13T13:22:19:     self.tmp = WorkerTmp(cfg)
+2025-09-13T13:22:19:   File "/var/www/api-botk/venv_api_botk/lib/python3.10/site-packages/gunicorn/workers/workertmp.py", line 23, in __init__
+2025-09-13T13:22:19:     fd, name = tempfile.mkstemp(prefix="wgunicorn-", dir=fdir)
+2025-09-13T13:22:19:   File "/usr/lib/python3.10/tempfile.py", line 489, in mkstemp
+2025-09-13T13:22:19:     prefix, suffix, dir, output_type = _sanitize_params(prefix, suffix, dir)
+2025-09-13T13:22:19:   File "/usr/lib/python3.10/tempfile.py", line 265, in _sanitize_params
+2025-09-13T13:22:19:     dir = gettempdir()
+2025-09-13T13:22:19:   File "/usr/lib/python3.10/tempfile.py", line 454, in gettempdir
+2025-09-13T13:22:19:     return _os.fsdecode(_gettempdir())
+2025-09-13T13:22:19:   File "/usr/lib/python3.10/tempfile.py", line 447, in _gettempdir
+2025-09-13T13:22:19:     tempdir = _get_default_tempdir()
+2025-09-13T13:22:19:   File "/usr/lib/python3.10/tempfile.py", line 362, in _get_default_tempdir
+2025-09-13T13:22:19:     raise FileNotFoundError(_errno.ENOENT,
+2025-09-13T13:22:19: FileNotFoundError: [Errno 2] No usable temporary directory found in ['/tmp', '/var/tmp', '/usr/tmp', '/var/www/api-botk']
+2025-09-13T18:52:11: [2025-09-13 18:52:11 -0300] [2589408] [INFO] Starting gunicorn 23.0.0
+2025-09-13T18:52:11: [2025-09-13 18:52:11 -0300] [2589408] [INFO] Listening at: http://0.0.0.0:8096 (2589408)
+2025-09-13T18:52:11: [2025-09-13 18:52:11 -0300] [2589408] [INFO] Using worker: sync
+2025-09-13T18:52:11: [2025-09-13 18:52:11 -0300] [2589408] [ERROR] Unhandled exception in main loop
+2025-09-13T18:52:11: Traceback (most recent call last):
+2025-09-13T18:52:11:   File "/var/www/api-botk/venv_api_botk/lib/python3.10/site-packages/gunicorn/arbiter.py", line 201, in run
+2025-09-13T18:52:11:     self.manage_workers()
+2025-09-13T18:52:11:   File "/var/www/api-botk/venv_api_botk/lib/python3.10/site-packages/gunicorn/arbiter.py", line 570, in manage_workers
+2025-09-13T18:52:11:     self.spawn_workers()
+2025-09-13T18:52:11:   File "/var/www/api-botk/venv_api_b2025-09-13T18:52:54: [2025-09-13 18:52:54 -0300] [2596164] [INFO] Starting gunicorn 23.0.0
+2025-09-13T18:52:54: [2025-09-13 18:52:54 -0300] [2596164] [INFO] Listening at: http://0.0.0.0:8096 (2596164)
+2025-09-13T18:52:54: [2025-09-13 18:52:54 -0300] [2596164] [INFO] Using worker: sync
+2025-09-13T18:52:54: [2025-09-13 18:52:54 -0300] [2596183] [INFO] Booting worker with pid: 2596183
+2025-09-13T18:52:54: [2025-09-13 18:52:54 -0300] [2596184] [INFO] Booting worker with pid: 2596184
+2025-09-13T18:52:54: [2025-09-13 18:52:54 -0300] [2596193] [INFO] Booting worker with pid: 2596193
+2025-09-13T18:52:54: [2025-09-13 18:52:54 -0300] [2596210] [INFO] Booting worker with pid: 2596210
