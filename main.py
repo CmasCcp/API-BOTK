@@ -19,8 +19,12 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 app = Flask(__name__)
 CORS(app)
 
-# Crear o actualizar assistant (usa solo vector store + funciones)
-ASSISTANT_ID, VECTOR_STORE_ID = create_or_update_assistant()
+# Crear o actualizar assistant (usa UN vector store con documentos de múltiples comunidades)
+communities_config = {
+    "macaya": "documentos_macaya",
+    "solor": "documentos_solor"
+}
+ASSISTANT_ID, VECTOR_STORE_ID = create_or_update_assistant(communities_config)
 
 
 # --------------------------------------------------------------------------------
@@ -33,7 +37,8 @@ def start_conversation():
     return jsonify({
         "thread_id": thread.id,
         "assistant_id": ASSISTANT_ID,
-        "vector_store_id": VECTOR_STORE_ID
+        "vector_store_id": VECTOR_STORE_ID,
+        "communities": list(communities_config.keys())
     })
 
 @app.route('/dummy', methods=['GET'])
